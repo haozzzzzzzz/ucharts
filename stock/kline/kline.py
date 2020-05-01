@@ -479,7 +479,7 @@ class ProKline:
 
     def get_chart(self):
         grid_chart = Grid(init_opts=opts.InitOpts(
-            height="1000px",
+            height="800px",
             animation_opts=opts.AnimationOpts(animation=False),
         ))
 
@@ -488,6 +488,7 @@ class ProKline:
         candlestick_chart_index = 0
         volume_bar_chart_index = 1
         macd_chart_index = 2
+        xaxis_index = [candlestick_chart_index, volume_bar_chart_index, macd_chart_index]
 
         candlestick_chart = Candlestick(title="candlestick", x_date=data["str_dates"], y_data=data["candlestick_y_data"], xaxis_index=candlestick_chart_index).get_chart()
         volume_bar_chart = VolumeBar(title="volume", x_date=data["str_dates"], y_data=data["volume_bar_y_data"], xaxis_index=volume_bar_chart_index).get_chart()
@@ -500,13 +501,13 @@ class ProKline:
             ),
             datazoom_opts=[
                 opts.DataZoomOpts(
-                    xaxis_index=[0, 1, 2],
+                    xaxis_index=xaxis_index,
                     range_start=Config.ZOOM_RANGE_START_PERCENT,
                     range_end=Config.ZOOM_RANGE_END_PERCENT
                 ),
                 opts.DataZoomOpts(
                     type_="inside",
-                    xaxis_index=[0, 1, 2],
+                    xaxis_index=xaxis_index,
                     range_start=Config.ZOOM_RANGE_START_PERCENT,
                     range_end=Config.ZOOM_RANGE_END_PERCENT
                 )

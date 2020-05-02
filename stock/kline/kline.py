@@ -11,6 +11,7 @@ import pandas
 class Config:
     COLOR_POSITIVE = "#B34038"
     COLOR_NEGATIVE = "#354654"
+
     ZOOM_RANGE_START_PERCENT = 90
     ZOOM_RANGE_END_PERCENT = 100
 
@@ -47,6 +48,12 @@ class Config:
             "color": "black"
         }
     ]
+
+    KDJ = {
+        "k_color": "red",
+        "d_color": "blue",
+        "j_color": "gold"
+    }
 
 
 class IndexGenerator:
@@ -435,6 +442,116 @@ class MacdChart:
         return self.get_chart().render_notebook()
 
 
+class KdjLine:
+    title = ""
+
+    x_date = []
+    slow_k = []
+    slow_d = []
+    slow_j = []
+
+    xaxis_index = None
+    yaxis_index = None
+
+    def __init__(self, title, x_date, high_prices, low_prices, close_prices, j_type="3D-2K", xaxis_index=0, yaxis_index=0):
+        self.title = title
+        self.x_date = x_date
+        self.xaxis_index = xaxis_index
+        self.yaxis_index = yaxis_index
+
+        self.slow_k, self.slow_d = talib.STOCH(high=high_prices, low=low_prices, close=close_prices)
+        if j_type == "3D-2K":
+            self.slow_j = self.slow_d * 3 - self.slow_k * 2
+
+        elif j_type == "3K-2D":
+            self.slow_j = self.slow_k * 3 - self.slow_d * 2
+
+        elif j_type == "K-D":
+            self.slow_j = self.slow_k - self.slow_d
+
+        else:
+            self.slow_j = self.slow_k - self.slow_d
+
+        self.x_date = [item for item in self.x_date]
+        self.slow_k = [item for item in self.slow_k]
+        self.slow_d = [item for item in self.slow_d]
+        self.slow_j = [item for item in self.slow_j]
+
+    def get_chart(self):
+        line = Line()
+        line.add_xaxis(xaxis_data=self.x_date)
+        line.add_yaxis(
+            series_name="K",
+            y_axis=self.slow_k,
+            xaxis_index=self.xaxis_index,
+            yaxis_index=self.yaxis_index,
+            is_symbol_show=False,
+            linestyle_opts=opts.LineStyleOpts(
+                width=1,
+                color=Config.KDJ["k_color"],
+            ),
+        )
+
+        line.add_yaxis(
+            series_name="D",
+            y_axis=self.slow_d,
+            xaxis_index=self.xaxis_index,
+            yaxis_index=self.yaxis_index,
+            is_symbol_show=False,
+            linestyle_opts=opts.LineStyleOpts(
+                width=1,
+                color=Config.KDJ["d_color"],
+            ),
+        )
+
+        line.add_yaxis(
+            series_name="J",
+            y_axis=self.slow_j,
+            xaxis_index=self.xaxis_index,
+            yaxis_index=self.yaxis_index,
+            is_symbol_show=False,
+            linestyle_opts=opts.LineStyleOpts(
+                width=1,
+                color=Config.KDJ["j_color"],
+            ),
+        )
+
+        line.set_series_opts(
+            label_opts=opts.LabelOpts(
+                is_show=False
+            ),
+        )
+        line.set_global_opts(
+            title_opts=opts.TitleOpts(title=self.title),
+            xaxis_opts=opts.AxisOpts(
+                type_="category",
+                is_scale=True,
+                axispointer_opts=opts.AxisPointerOpts(
+                    is_show=True,
+                )
+            ),
+            yaxis_opts=opts.AxisOpts(
+                is_scale=True,
+            ),
+            datazoom_opts=[
+                opts.DataZoomOpts(
+                    range_start=Config.ZOOM_RANGE_START_PERCENT,
+                    range_end=Config.ZOOM_RANGE_END_PERCENT
+                ),
+                opts.DataZoomOpts(
+                    type_="inside",
+                    range_start=Config.ZOOM_RANGE_START_PERCENT,
+                    range_end=Config.ZOOM_RANGE_END_PERCENT
+                )
+            ],
+        )
+
+        return line
+
+    def render_notebook(self):
+        return self.get_chart().render_notebook()
+
+
 class ProKline:
     """
     专业K线图
@@ -472,6 +589,8 @@ class ProKline:
 
         return {
             "str_dates": str_dates,
+            "high_prices": self.df["high_price"],
+            "low_prices": self.df["low_price"],
             "close_prices": self.df["close_price"],
             "candlestick_y_data": candlestick_y_data,
             "volume_bar_y_data": volume_bar_y_data,
@@ -488,11 +607,13 @@ class ProKline:
         candlestick_chart_index = 0
         volume_bar_chart_index = 1
         macd_chart_index = 2
-        xaxis_index = [candlestick_chart_index, volume_bar_chart_index, macd_chart_index]
+        kdj_chart_index = 3
+        xaxis_index = [candlestick_chart_index, volume_bar_chart_index, macd_chart_index, kdj_chart_index]
 
-        candlestick_chart = Candlestick(title="candlestick", x_date=data["str_dates"], y_data=data["candlestick_y_data"], xaxis_index=candlestick_chart_index).get_chart()
-        volume_bar_chart = VolumeBar(title="volume", x_date=data["str_dates"], y_data=data["volume_bar_y_data"], xaxis_index=volume_bar_chart_index).get_chart()
-        macd_chart = MacdChart(title="macd", x_date=data["str_dates"], close_prices=data["close_prices"], xaxis_index=macd_chart_index).get_chart()
+        candlestick_chart = Candlestick(title="CANDLESTICK", x_date=data["str_dates"], y_data=data["candlestick_y_data"], xaxis_index=candlestick_chart_index).get_chart()
+        volume_bar_chart = VolumeBar(title="VOLUME", x_date=data["str_dates"], y_data=data["volume_bar_y_data"], xaxis_index=volume_bar_chart_index).get_chart()
+        macd_chart = MacdChart(title="MACD", x_date=data["str_dates"], close_prices=data["close_prices"], xaxis_index=macd_chart_index).get_chart()
+        kdj_chart = KdjLine(title="KDJ", x_date=data["str_dates"], high_prices=data["high_prices"], low_prices=data["low_prices"], close_prices=data["close_prices"], j_type="K-D", xaxis_index=kdj_chart_index, yaxis_index=kdj_chart_index).get_chart()
 
         candlestick_chart.set_global_opts(
             axispointer_opts=opts.AxisPointerOpts(
@@ -528,7 +649,7 @@ class ProKline:
             legend_opts=opts.LegendOpts(
                 type_="scroll",
                 pos_left="right",
-                pos_top="50%"
+                pos_top="41%"
             )
         )
 
@@ -542,20 +663,38 @@ class ProKline:
             legend_opts=opts.LegendOpts(
                 type_="scroll",
                 pos_left="right",
-                pos_top="68%"
+                pos_top="57%"
+            )
+        )
+
+        kdj_chart.set_global_opts(
+            xaxis_opts=opts.AxisOpts(
+                axislabel_opts=opts.LabelOpts(is_show=False),
+            ),
+            yaxis_opts=opts.AxisOpts(
+                axislabel_opts=opts.LabelOpts(is_show=False),
+            ),
+            legend_opts=opts.LegendOpts(
+                type_="scroll",
+                pos_left="right",
+                pos_top="78%"
             )
         )
 
         grid_chart.add(candlestick_chart, grid_opts=opts.GridOpts(
-            pos_left="5%", pos_right="1%", height="40%"
+            pos_left="5%", pos_right="1%", height="30%"
         ))
 
         grid_chart.add(volume_bar_chart, grid_opts=opts.GridOpts(
-            pos_left="5%", pos_right="1%", pos_top="50%", height="15%"
+            pos_left="5%", pos_right="1%", pos_top="41%", height="15%"
         ))
 
         grid_chart.add(macd_chart, grid_opts=opts.GridOpts(
-            pos_left="5%", pos_right="1%", pos_top="68%", height="25%"
+            pos_left="5%", pos_right="1%", pos_top="57%", height="20%"
+        ))
+
+        grid_chart.add(kdj_chart, grid_opts=opts.GridOpts(
+            pos_left="5%", pos_right="1%", pos_top="78%", height="15%"
         ))
 
         return grid_chart
